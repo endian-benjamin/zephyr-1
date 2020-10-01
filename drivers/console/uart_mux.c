@@ -687,6 +687,44 @@ static struct uart_mux_driver_api uart_mux_driver_api = {
 	.attach = attach,
 };
 
+static void _disconnect_gsm_mux_cb(struct device *uart, struct device *dev,
+				   int dlci_address, void *user_data)
+{
+	struct uart_mux_dev_data *dev_data = DEV_DATA(dev);
+	struct uart_mux *mux = dev_data->real_uart;
+
+	(void)gsm_mux_disconnect(mux, K_SECONDS(1));
+}
+
+int uart_mux_suspend(struct device *dev)
+{
+	LOG_DBG("Suspending uart_mux");
+
+	uart_mux_foreach(_disconnect_gsm_mux_cb, dev);
+
+	return 0;
+}
+
+int uart_mux_resume(struct device *dev)
+{
+	struct uart_mux_dev_data *dev_data = DEV_DATA(dev);
+	struct uart_mux *real_uart = dev_data->real_uart;
+	int ret;
+
+	LOG_DBG("Resuming uart_mux");
+
+	uart_irq_rx_disable(real_uart->uart);
+	uart_irq_tx_disable(real_uart->uart);
+	uart_mux_flush_isr(real_uart->uart);
+	uart_irq_callback_user_data_set(
+		real_uart->uart, uart_mux_isr,
+		real_uart);
+
+	uart_irq_rx_enable(real_uart->uart);
+
+	return 0;
+}
+
 struct device *uart_mux_alloc(void)
 {
 	sys_snode_t *sn, *sns;

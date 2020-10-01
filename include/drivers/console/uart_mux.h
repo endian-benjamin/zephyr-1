@@ -131,6 +131,9 @@ void uart_mux_foreach(uart_mux_cb_t cb, void *user_data);
 
 #include <syscalls/uart_mux.h>
 
+int uart_mux_suspend(struct device *dev);
+int uart_mux_resume(struct device *dev);
+
 /**
  * @}
  */
